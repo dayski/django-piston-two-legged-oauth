@@ -47,24 +47,26 @@ class TwoLeggedOAuthAuthentication(object):
             if not key:
                 logging.error('TwoLeggedOAuthAuthentication. No consumer_key found.')
                 return None
-            # Raises exception if it doesn't pass 
-            oauth_server.verify_request(oauth_request, get_consumer(key), None)
+                
+            # Raises exception if it doesn't pass
+            consumer = get_consumer(key)
+            oauth_server.verify_request(oauth_request, consumer, None)
             # If OAuth authentication is successful, set oauth_consumer_key on request in case we need it later 
             request.META['oauth_consumer_key'] = key
-            return True
+            request.user = consumer.user
+
+            # ensure the user associated with this consumer is active!
+            return consumer.user.is_active
         except oauth2.Error, e:
             logging.exception("Error in TwoLeggedOAuthAuthentication.")
             request.user = AnonymousUser()
-            return False
         except KeyError, e:
             logging.exception("Error in TwoLeggedOAuthAuthentication.")
             request.user = AnonymousUser()
-            return False
         except Exception, e:
             logging.exception("Error in TwoLeggedOAuthAuthentication.")
-            return False
 
-        return True
+        return False
 
     def challenge(self):
         resp = HttpResponse("OAuth Authorization Required")
